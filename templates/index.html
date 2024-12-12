@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube视频下载器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 标题部分 -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">YouTube视频下载器</h1>
+            <p class="text-gray-600">输入YouTube视频链接，轻松下载高质量视频</p>
+        </div>
+
+        <!-- 下载表单 -->
+        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <form onsubmit="downloadVideo(event)" class="flex gap-2">
+                <input type="text" id="videoUrl" name="url"
+                    class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    placeholder="请输入YouTube视频链接">
+                <button type="submit"
+                    class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    下载
+                </button>
+            </form>
+            <div id="downloadStatus" class="mt-4 text-center hidden">
+                <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                <p class="text-gray-600 mt-2" id="statusText">正在下载中...</p>
+            </div>
+        </div>
+
+        <!-- 视频列表 -->
+        <div class="grid gap-6" id="videoList">
+            {% for video in videos %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex gap-4">
+                    <video width="320" height="180" controls class="rounded">
+                        <source src="{{ video.file_path }}" type="video/mp4">
+                    </video>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold mb-2">{{ video.title }}</h3>
+                        <p class="text-gray-600 mb-1">作者: {{ video.author }}</p>
+                        <p class="text-gray-600 mb-1">时长: {{ video.duration }}</p>
+                        <p class="text-gray-600 mb-1">大小: {{ video.file_size }}</p>
+                        <p class="text-gray-600 mb-1">下载时间: {{ video.timestamp }}</p>
+                        <p class="text-gray-600 mb-1">存储路径: {{ video.file_path }}</p>
+                        <p class="text-gray-600 mb-3">描述: {{ video.description }}</p>
+                        <a href="{{ video.file_path }}" 
+                           class="inline-block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                           download="{{ video.title }}">
+                            下载视频
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        async function downloadVideo(event) {
+            event.preventDefault();
+            const url = document.getElementById('videoUrl').value;
+            if (!url) {
+                alert('请输入视频链接');
+                return;
+            }
+
+            const statusDiv = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('statusText');
+            statusDiv.classList.remove('hidden');
+            statusText.textContent = '正在开始下载...';
+
+            try {
+                const formData = new FormData();
+                formData.append('url', url);
+                
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.status === 'error') {
+                    throw new Error(result.message);
+                }
+
+                // 下载完成后刷新页面
+                window.location.reload();
+
+            } catch (error) {
+                console.error('下载出错:', error);
+                statusText.textContent = `下载失败: ${error.message}`;
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html> 
